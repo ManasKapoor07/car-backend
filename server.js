@@ -10,6 +10,8 @@ const swaggerUi = require('swagger-ui-express');
 
 const app = express();
 const SERVER_URL = process.env.SERVER_URL;
+const PORT = process.env.PORT;
+
 
 app.use(cors())
 
