@@ -1,29 +1,31 @@
-require('dotenv').config(); // <-- Load env variables at the VERY top
+require('dotenv').config(); // Load env variables first
 
 const express = require('express');
 const mongoose = require('mongoose');
-const cors = require('cors')
-
-const Car = require('./models/Car');
+const cors = require('cors');
 const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
 
+const Car = require('./models/Car');
+
 const app = express();
-const SERVER_URL = process.env.SERVER_URL;
-const PORT = process.env.PORT;
+const PORT = process.env.PORT || 5000;
+const SERVER_URL = process.env.SERVER_URL || `http://localhost:${PORT}`;
 
+// Enable CORS globally
+app.use(cors());
 
-app.use(cors())
+// Middleware to parse JSON (optional but good practice)
+app.use(express.json());
 
-
+// MongoDB connection
 mongoose.connect(process.env.MONGODB_URI, {
-  dbName : 'MB-Car-Bazzar',
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
+  dbName: 'MB-Car-Bazzar',
 })
-.then(() => console.log('MongoDB Connected'))
-.catch((err) => console.log('Mongo Error: ', err));
+  .then(() => console.log('✅ MongoDB Connected'))
+  .catch((err) => console.error('❌ Mongo Error:', err));
 
+// Swagger setup
 const swaggerOptions = {
   definition: {
     openapi: '3.0.0',
@@ -32,14 +34,19 @@ const swaggerOptions = {
       version: '1.0.0',
       description: 'API to fetch car details',
     },
-    servers: [{ url: `${SERVER_URL}` }],
+    servers: [{ url: SERVER_URL }],
   },
-  apis: ['./server.js'], 
+  apis: ['./server.js'], // where the annotations are
 };
 
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
 
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+// CORS headers specifically for Swagger UI route (optional)
+app.use('/api-docs', (req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*'); // Allow all origins
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+  next();
+}, swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 /**
  * @swagger
@@ -98,6 +105,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
  *                 $ref: '#/components/schemas/Car'
  */
 
+// Routes
 app.get('/cars', async (req, res) => {
   try {
     const cars = await Car.find();
@@ -107,7 +115,8 @@ app.get('/cars', async (req, res) => {
   }
 });
 
+// Start server
 app.listen(PORT, () => {
-  console.log(`Server running at ${SERVER_URL}`);
-  console.log(`Swagger UI at ${SERVER_URL}/api-docs`);
+  console.log(`🚗 Server running at ${SERVER_URL}`);
+  console.log(`📘 Swagger UI available at ${SERVER_URL}/api-docs`);
 });
