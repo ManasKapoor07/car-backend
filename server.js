@@ -1,53 +1,61 @@
-require('dotenv').config(); // Load env variables first
+require("dotenv").config(); // Load env variables
 
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-const swaggerJsdoc = require('swagger-jsdoc');
-const swaggerUi = require('swagger-ui-express');
+const express = require("express");
+const mongoose = require("mongoose");
+const cors = require("cors");
+const swaggerJsdoc = require("swagger-jsdoc");
+const swaggerUi = require("swagger-ui-express");
 
-const Car = require('./models/Car');
+const Car = require("./models/Car");
+const sendToWhatsApp = require("./routes/sendToWhatsApp");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 const SERVER_URL = process.env.SERVER_URL || `http://localhost:${PORT}`;
 
-// Enable CORS globally
+// Middlewares
 app.use(cors());
-
-// Middleware to parse JSON (optional but good practice)
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// MongoDB connection
-mongoose.connect(process.env.MONGODB_URI, {
-  dbName: 'MB-Car-Bazzar',
-})
-  .then(() => console.log('✅ MongoDB Connected'))
-  .catch((err) => console.error('❌ Mongo Error:', err));
+// MongoDB
+mongoose
+  .connect(process.env.MONGODB_URI, { dbName: "MB-Car-Bazzar" })
+  .then(() => console.log("✅ MongoDB Connected"))
+  .catch((err) => console.error("❌ Mongo Error:", err));
 
 // Swagger setup
 const swaggerOptions = {
   definition: {
-    openapi: '3.0.0',
+    openapi: "3.0.0",
     info: {
-      title: 'Car Listing API',
-      version: '1.0.0',
-      description: 'API to fetch car details',
+      title: "Maa Bhawani Car Bazar API",
+      version: "1.0.0",
+      description: "API to manage car data and WhatsApp form submission",
     },
     servers: [{ url: SERVER_URL }],
   },
-  apis: ['./server.js'], // where the annotations are
+  apis: ["./server.js", "./routes/sendToWhatsApp.js"], // include both
 };
 
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
 
-// CORS headers specifically for Swagger UI route (optional)
-app.use('/api-docs', (req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*'); // Allow all origins
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
-  next();
-}, swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+// Swagger route
+app.use(
+  "/api-docs",
+  (req, res, next) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header(
+      "Access-Control-Allow-Headers",
+      "Origin, X-Requested-With, Content-Type, Accept"
+    );
+    next();
+  },
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpec)
+);
 
+// Swagger: Car schema
 /**
  * @swagger
  * components:
@@ -92,8 +100,7 @@ app.use('/api-docs', (req, res, next) => {
  * /cars:
  *   get:
  *     summary: Get all car details
- *     tags:
- *       - Cars
+ *     tags: [Cars]
  *     responses:
  *       200:
  *         description: A list of cars
@@ -105,8 +112,8 @@ app.use('/api-docs', (req, res, next) => {
  *                 $ref: '#/components/schemas/Car'
  */
 
-// Routes
-app.get('/cars', async (req, res) => {
+// Cars endpoint
+app.get("/cars", async (req, res) => {
   try {
     const cars = await Car.find();
     res.json(cars);
@@ -115,7 +122,10 @@ app.get('/cars', async (req, res) => {
   }
 });
 
-// Start server
+// WhatsApp submission route
+app.use("/api", sendToWhatsApp);
+
+// Start server once
 app.listen(PORT, () => {
   console.log(`🚗 Server running at ${SERVER_URL}`);
   console.log(`📘 Swagger UI available at ${SERVER_URL}/api-docs`);
