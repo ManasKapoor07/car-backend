@@ -7,7 +7,6 @@ const swaggerJsdoc = require("swagger-jsdoc");
 const swaggerUi = require("swagger-ui-express");
 
 const Car = require("./models/Car");
-const sendToWhatsApp = require("./routes/sendToWhatsApp");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -35,7 +34,7 @@ const swaggerOptions = {
     },
     servers: [{ url: SERVER_URL }],
   },
-  apis: ["./server.js", "./routes/sendToWhatsApp.js"], // include both
+  apis: ["./server.js", "./routes/send-to-email.js.js"], // include both
 };
 
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
@@ -113,6 +112,65 @@ app.use(
  */
 
 // Cars endpoint
+/**
+ * @swagger
+ * /api/send-to-email:
+ *   post:
+ *     summary: Send car submission data and images to email
+ *     tags:
+ *       - Email
+ *     consumes:
+ *       - multipart/form-data
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               city:
+ *                 type: string
+ *               registrationNumber:
+ *                 type: string
+ *               rcAvailable:
+ *                 type: string
+ *               insuranceAvailable:
+ *                 type: string
+ *               carModel:
+ *                 type: string
+ *               variant:
+ *                 type: string
+ *               fuelType:
+ *                 type: string
+ *               ownership:
+ *                 type: string
+ *               kilometersDriven:
+ *                 type: string
+ *               expectedPrice:
+ *                 type: string
+ *               conditionScale:
+ *                 type: string
+ *               damageRemarks:
+ *                 type: string
+ *               files:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *     responses:
+ *       200:
+ *         description: Email sent successfully
+ *       500:
+ *         description: Email failed to send
+ */
+
+// POST /api/send-to-email
 app.get("/cars", async (req, res) => {
   try {
     const cars = await Car.find();
@@ -123,8 +181,11 @@ app.get("/cars", async (req, res) => {
 });
 
 // WhatsApp submission route
-app.use("/api", sendToWhatsApp);
+const emailRouter = require("./routes/send-to-email");
+app.use(express.urlencoded({ extended: true }));
 
+app.use("/api", emailRouter);
+//
 // Start server once
 app.listen(PORT, () => {
   console.log(`🚗 Server running at ${SERVER_URL}`);
